@@ -3,13 +3,19 @@ const cors = require('cors');
 const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const Groq = require('groq-sdk');
+const mongoose = require('mongoose');
 require('dotenv').config();
+
+const authRoutes = require('./routes/auth');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+// --- Routes ---
+app.use('/api/auth', authRoutes);
 
 // --- Multer setup: memory storage, PDF only, max 5MB ---
 const upload = multer({
@@ -174,4 +180,17 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+// --- Database connection & server startup ---
+async function startServer() {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('MongoDB connected');
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error('MongoDB connection failed:', err.message);
+    process.exit(1);
+  }
+}
+
+startServer();

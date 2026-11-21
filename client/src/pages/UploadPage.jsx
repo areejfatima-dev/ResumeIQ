@@ -3,9 +3,7 @@ import { useDropzone } from "react-dropzone";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, AlertCircle, ArrowRight } from "lucide-react";
-import axios from "axios";
-
-const API = "http://localhost:5000";
+import api from "../api";
 
 // The server slices jobDescription to 4000 chars before building the prompt,
 // so warn once the pasted text exceeds that — the tail is silently dropped.
@@ -70,7 +68,7 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append("resume", file);
 
-      const { data: uploadData } = await axios.post(`${API}/api/upload`, formData, {
+      const { data: uploadData } = await api.post("/api/upload", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
@@ -87,7 +85,7 @@ export default function UploadPage() {
       phase = "analyzing";
       setStage("analyzing");
 
-      const { data: analyzeData } = await axios.post(`${API}/api/analyze`, {
+      const { data: analyzeData } = await api.post("/api/analyze", {
         resumeText,
         jobDescription: jobDescription.trim(),
       });
@@ -306,7 +304,7 @@ const styles = {
     fontFamily: "'Inter', 'Segoe UI', sans-serif",
     position: "relative",
     overflow: "hidden",
-    padding: "24px",
+    padding: "88px 24px 24px",
   },
   grid: {
     position: "absolute",

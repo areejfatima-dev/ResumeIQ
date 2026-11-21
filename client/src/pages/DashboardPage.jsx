@@ -433,7 +433,7 @@ const styles = {
     fontFamily: "'Inter', 'Segoe UI', sans-serif",
     position: "relative",
     overflow: "hidden",
-    padding: "32px 24px 60px 240px",
+    padding: "96px 24px 60px 24px",
   },
   grid: {
     position: "absolute",

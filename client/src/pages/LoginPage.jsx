@@ -1,7 +1,8 @@
 import React, { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Mail, Lock, ArrowRight, FileCheck2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, FileCheck2, AlertCircle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 // ---- Design tokens ----
 // bg: #0B0F14 (near-black ink)   card: #12181F
@@ -9,9 +10,12 @@ import { Mail, Lock, ArrowRight, FileCheck2 } from "lucide-react";
 // text: #E7ECEF   muted: #7C8A96
 
 export default function LoginPage() {
+  const navigate = useNavigate();
+  const { login, user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const cardRef = useRef(null);
   const mx = useMotionValue(0);
@@ -31,10 +35,22 @@ export default function LoginPage() {
     my.set(0);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setError("");
     setSubmitting(true);
-    setTimeout(() => setSubmitting(false), 1400);
+    try {
+      await login(email, password);
+      navigate("/upload");
+    } catch (err) {
+      setError(err.message || "Login failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!loading && user) {
+    return <Navigate to="/upload" replace />;
   }
 
   return (
@@ -171,6 +187,17 @@ export default function LoginPage() {
               />
             </FieldRow>
 
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={errorBoxStyle}
+              >
+                <AlertCircle size={16} color="#F87171" style={{ flexShrink: 0 }} />
+                <span>{error}</span>
+              </motion.div>
+            )}
+
             <motion.button
               type="submit"
               initial={{ opacity: 0, y: 10 }}
@@ -266,6 +293,21 @@ const inputStyle = {
   color: "#E7ECEF",
   fontSize: 14,
   width: "100%",
+};
+
+const errorBoxStyle = {
+  marginTop: 2,
+  marginBottom: 2,
+  padding: "12px 14px",
+  borderRadius: 10,
+  background: "#F8717115",
+  border: "1px solid #F8717133",
+  color: "#FCA5A5",
+  fontSize: 13,
+  lineHeight: 1.5,
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 8,
 };
 
 function FloatingOrb({ size, color, top, left, right, bottom, duration }) {

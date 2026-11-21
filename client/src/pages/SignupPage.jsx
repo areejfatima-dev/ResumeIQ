@@ -1,14 +1,18 @@
 import React, { useState, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { Mail, Lock, ArrowRight, UserPlus, User, CheckCircle2 } from "lucide-react";
+import { Mail, Lock, ArrowRight, UserPlus, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function SignupPage() {
+  const navigate = useNavigate();
+  const { signup, user, loading } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState({});
+  const [apiError, setApiError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
@@ -44,16 +48,25 @@ export default function SignupPage() {
     return Object.keys(next).length === 0;
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
+    setApiError("");
     if (!validate()) return;
 
     setSubmitting(true);
-    // Simulate backend call
-    setTimeout(() => {
-      setSubmitting(false);
+    try {
+      await signup(fullName.trim(), email, password);
       setSuccess(true);
-    }, 1400);
+      setTimeout(() => navigate("/upload"), 900);
+    } catch (err) {
+      setApiError(err.message || "Signup failed");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (!loading && user) {
+    return <Navigate to="/upload" replace />;
   }
 
   // Password strength hint (shown below password field, only when typing)
@@ -207,6 +220,7 @@ export default function SignupPage() {
                 style={inputStyle}
               />
             </FieldRow>
+            {errors.fullName && <p style={fieldErrorStyle}>{errors.fullName}</p>}
 
             {/* Email */}
             <FieldRow delay={0.46} error={errors.email}>
@@ -219,6 +233,7 @@ export default function SignupPage() {
                 style={inputStyle}
               />
             </FieldRow>
+            {errors.email && <p style={fieldErrorStyle}>{errors.email}</p>}
 
             {/* Password */}
             <FieldRow delay={0.52} error={errors.password}>
@@ -231,6 +246,7 @@ export default function SignupPage() {
                 style={inputStyle}
               />
             </FieldRow>
+            {errors.password && <p style={fieldErrorStyle}>{errors.password}</p>}
 
             {/* Password strength hint */}
             {passwordHint && (
@@ -254,6 +270,18 @@ export default function SignupPage() {
                 style={inputStyle}
               />
             </FieldRow>
+            {errors.confirmPassword && <p style={fieldErrorStyle}>{errors.confirmPassword}</p>}
+
+            {apiError && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={errorBoxStyle}
+              >
+                <AlertCircle size={16} color="#F87171" style={{ flexShrink: 0 }} />
+                <span>{apiError}</span>
+              </motion.div>
+            )}
 
             {/* Submit button */}
             <motion.button
@@ -414,6 +442,29 @@ const spinnerStyle = {
   borderTopColor: "#0B0F14",
   borderRadius: "50%",
   display: "inline-block",
+};
+
+const fieldErrorStyle = {
+  color: "#F87171",
+  fontSize: 12,
+  marginTop: -8,
+  marginBottom: 10,
+  paddingLeft: 2,
+};
+
+const errorBoxStyle = {
+  marginTop: 2,
+  marginBottom: 2,
+  padding: "12px 14px",
+  borderRadius: 10,
+  background: "#F8717115",
+  border: "1px solid #F8717133",
+  color: "#FCA5A5",
+  fontSize: 13,
+  lineHeight: 1.5,
+  display: "flex",
+  alignItems: "flex-start",
+  gap: 8,
 };
 
 // ---- Floating background orb ----
