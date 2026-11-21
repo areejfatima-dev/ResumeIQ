@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Link, useLocation } from "react-router-dom";
-import { motion } from "framer-motion";
 import LoginPage from "./pages/LoginPage";
 import UploadPage from "./pages/UploadPage";
 import SignupPage from "./pages/SignupPage";
@@ -12,10 +11,27 @@ const NAV_LINKS = [
   { to: "/dashboard", label: "Dashboard" },
 ];
 
+const navWrapperStyle = {
+  position: "fixed",
+  top: "100px",
+  left: "32px",
+  zIndex: 9999,
+  display: "flex",
+  flexDirection: "column",
+  gap: "10px",
+  background: "#12181Fcc",
+  backdropFilter: "blur(8px)",
+  padding: "16px",
+  borderRadius: "16px",
+  border: "1px solid #22303A",
+};
+
 function App() {
   return (
     <BrowserRouter>
-      <TestNav />
+      <div style={navWrapperStyle}>
+        <TestNavLinks />
+      </div>
       <Routes>
         <Route path="/" element={<LoginPage />} />
         <Route path="/upload" element={<UploadPage />} />
@@ -26,59 +42,42 @@ function App() {
   );
 }
 
-function TestNav() {
+function TestNavLinks() {
   const { pathname } = useLocation();
 
   return (
-    <motion.nav
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      style={{
-        position: "fixed",
-        top: "calc(50vh - 110px)",
-        left: "calc(50vw - 340px)",
-        zIndex: 999,
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
-        background: "#12181Fcc",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        padding: "8px",
-        borderRadius: 16,
-        border: "1px solid #22303A",
-        boxShadow: "0 8px 32px -8px #00000066, inset 0 1px 0 #ffffff06",
-      }}
-    >
+    <>
       {NAV_LINKS.map(({ to, label }) => {
         const active = pathname === to;
         return (
           <Link key={to} to={to} style={{ textDecoration: "none" }}>
-            <motion.span
-              whileHover={!active ? { x: 3, color: "#E7ECEF" } : {}}
-              whileTap={{ scale: 0.97 }}
+            <span
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
                 padding: "9px 16px",
                 borderRadius: 10,
                 fontSize: 13,
                 fontWeight: 500,
-                letterSpacing: "0.01em",
                 color: active ? "#5EEAD4" : "#7C8A96",
                 background: active ? "#5EEAD410" : "transparent",
                 borderLeft: active ? "2px solid #5EEAD4" : "2px solid transparent",
                 transition: "background 0.2s, color 0.2s",
+                cursor: "pointer",
+              }}
+              onMouseEnter={(e) => {
+                if (!active) e.currentTarget.style.color = "#E7ECEF";
+              }}
+              onMouseLeave={(e) => {
+                if (!active) e.currentTarget.style.color = "#7C8A96";
               }}
             >
               {label}
-            </motion.span>
+            </span>
           </Link>
         );
       })}
-    </motion.nav>
+    </>
   );
 }
 

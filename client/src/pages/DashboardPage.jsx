@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   RadialBarChart,
@@ -17,38 +17,12 @@ import {
   AlertTriangle,
   Lightbulb,
   ArrowLeft,
+  ArrowRight,
   FileText,
+  FileSearch,
+  Briefcase,
+  GraduationCap,
 } from "lucide-react";
-
-// ---- Dummy analysis data (replaced later with real AI response) ----
-
-const MOCK_RESULT = {
-  fileName: "Areej_Cv.pdf",
-  overallScore: 78,
-  matchedKeywords: [
-    "React",
-    "JavaScript",
-    "REST APIs",
-    "Git",
-    "Problem Solving",
-    "SQL",
-    "Team Collaboration",
-    "HTML/CSS",
-  ],
-  missingKeywords: ["TypeScript", "Docker", "AWS", "CI/CD", "Agile/Scrum"],
-  categoryScores: [
-    { category: "Technical Skills", score: 82 },
-    { category: "Experience", score: 65 },
-    { category: "Keywords Match", score: 78 },
-    { category: "Formatting", score: 90 },
-  ],
-  suggestions: [
-    "Add quantified achievements to your project descriptions (e.g. 'Reduced load time by 40%')",
-    "Include TypeScript experience if you have any — it's heavily requested in job listings",
-    "Mention specific cloud platforms you've used (AWS, GCP, or Azure)",
-    "Add a dedicated 'Tools & Technologies' section listing frameworks, databases, and dev tools",
-  ],
-};
 
 // ---- Helpers ----
 
@@ -56,6 +30,23 @@ function scoreColor(score) {
   if (score >= 75) return "#5EEAD4";
   if (score >= 50) return "#F5C451";
   return "#F87171";
+}
+
+// The AI can hand back a score as a string ("82"), null, or out of range.
+// Recharts needs a real finite number on a numeric axis, otherwise the bar
+// geometry collapses and the bar silently renders at zero width.
+function clampScore(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.min(100, Math.max(0, n));
+}
+
+function normalizeCategoryScores(value) {
+  if (!Array.isArray(value)) return [];
+  return value.map((row) => ({
+    category: String(row?.category ?? "Unknown"),
+    score: clampScore(row?.score),
+  }));
 }
 
 function AnimatedNumber({ value, duration = 1200 }) {
@@ -84,14 +75,88 @@ function AnimatedNumber({ value, duration = 1200 }) {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const data = MOCK_RESULT;
-  const color = scoreColor(data.overallScore);
+  const location = useLocation();
+
+  // Real analysis data, handed over by UploadPage via router state.
+  const analysis = location.state?.analysis;
+  const fileName = location.state?.fileName;
+
+  // Direct visit / refresh on /dashboard: there is nothing to render.
+  if (!analysis) {
+    return (
+      <div style={styles.page}>
+        <div style={styles.grid} />
+        <FloatingOrb size={420} color="#5EEAD422" top="-12%" right="-8%" duration={16} />
+        <FloatingOrb size={280} color="#F5C45118" bottom="-10%" left="-5%" duration={20} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          style={styles.emptyCard}
+        >
+          <motion.div
+            initial={{ scale: 0.6, opacity: 0, rotate: -8 }}
+            animate={{ scale: 1, opacity: 1, rotate: 0 }}
+            transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 14 }}
+            style={styles.emptyIconBadge}
+          >
+            <FileSearch size={26} color="#0B0F14" strokeWidth={2.4} />
+          </motion.div>
+
+          <motion.h1
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
+            style={styles.pageTitle}
+          >
+            No analysis yet
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, x: -12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.32, duration: 0.5 }}
+            style={styles.emptyText}
+          >
+            Upload a resume to get started — we'll score it against a job description and
+            show you what to improve.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.4 }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.015, boxShadow: "0 10px 30px -8px #5EEAD466" }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate("/upload")}
+              style={styles.emptyBtn}
+            >
+              Upload a resume <ArrowRight size={16} />
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  const color = scoreColor(analysis.overallScore);
 
   // Recharts radial data — single bar for the score
-  const radialData = [{ name: "Score", value: data.overallScore, fill: color }];
+  const radialData = [{ name: "Score", value: analysis.overallScore, fill: color }];
 
   // Category bar chart colors
   const barColors = ["#5EEAD4", "#2DD4BF", "#5EEAD4", "#2DD4BF"];
+
+  // DEBUG (temporary): remove once the chart is confirmed rendering real data
+  console.log("[Dashboard] categoryScores =", analysis.categoryScores);
+  console.log(
+    "[Dashboard] score types =",
+    analysis.categoryScores?.map((c) => typeof c?.score)
+  );
+
+  const categoryScores = normalizeCategoryScores(analysis.categoryScores);
 
   return (
     <div style={styles.page}>
@@ -116,7 +181,7 @@ export default function DashboardPage() {
             <h1 style={styles.pageTitle}>Your Resume Analysis</h1>
             <p style={styles.pageSubtitle}>
               <FileText size={14} style={{ marginRight: 6, verticalAlign: -2 }} />
-              {data.fileName}
+              {fileName}
             </p>
           </div>
         </motion.div>
@@ -128,7 +193,7 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1, duration: 0.5 }}
-            style={styles.card}
+            style={{ ...styles.card, flex: "1 1 340px", minWidth: 0 }}
           >
             <h3 style={styles.cardTitle}>Overall Score</h3>
             <div style={styles.scoreWrap}>
@@ -156,7 +221,7 @@ export default function DashboardPage() {
               {/* Score number overlay */}
               <div style={styles.scoreCenter}>
                 <span style={{ ...styles.scoreNumber, color }}>
-                  <AnimatedNumber value={data.overallScore} />
+                  <AnimatedNumber value={analysis.overallScore} />
                 </span>
                 <span style={styles.scoreLabel}>/ 100</span>
               </div>
@@ -168,13 +233,13 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            style={styles.card}
+            style={{ ...styles.card, flex: "1 1 340px", minWidth: 0 }}
           >
             <h3 style={styles.cardTitle}>Category Breakdown</h3>
             <div style={{ width: "100%", height: 200 }}>
-              <ResponsiveContainer>
+              <ResponsiveContainer width="100%" height={200}>
                 <BarChart
-                  data={data.categoryScores}
+                  data={categoryScores}
                   layout="vertical"
                   margin={{ left: 10, right: 20, top: 0, bottom: 0 }}
                 >
@@ -199,7 +264,7 @@ export default function DashboardPage() {
                     isAnimationActive={true}
                     animationDuration={1000}
                   >
-                    {data.categoryScores.map((entry, i) => (
+                    {categoryScores.map((entry, i) => (
                       <Cell key={i} fill={barColors[i % barColors.length]} />
                     ))}
                   </Bar>
@@ -220,12 +285,12 @@ export default function DashboardPage() {
           >
             <h3 style={{ ...styles.cardTitle, color: "#5EEAD4" }}>
               <CheckCircle2 size={16} style={{ marginRight: 6, verticalAlign: -2 }} />
-              Matched Keywords ({data.matchedKeywords.length})
+              Matched Keywords ({analysis.matchedKeywords.length})
             </h3>
             <div style={styles.chipWrap}>
-              {data.matchedKeywords.map((kw, i) => (
+              {analysis.matchedKeywords.map((kw, i) => (
                 <motion.span
-                  key={kw}
+                  key={`${kw}-${i}`}
                   initial={{ opacity: 0, scale: 0.8, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 0.4 + i * 0.06, duration: 0.3 }}
@@ -247,12 +312,12 @@ export default function DashboardPage() {
           >
             <h3 style={{ ...styles.cardTitle, color: "#F87171" }}>
               <AlertTriangle size={16} style={{ marginRight: 6, verticalAlign: -2 }} />
-              Missing Keywords ({data.missingKeywords.length})
+              Missing Keywords ({analysis.missingKeywords.length})
             </h3>
             <div style={styles.chipWrap}>
-              {data.missingKeywords.map((kw, i) => (
+              {analysis.missingKeywords.map((kw, i) => (
                 <motion.span
-                  key={kw}
+                  key={`${kw}-${i}`}
                   initial={{ opacity: 0, scale: 0.8, y: 8 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   transition={{ delay: 0.45 + i * 0.06, duration: 0.3 }}
@@ -278,7 +343,7 @@ export default function DashboardPage() {
             Improvement Suggestions
           </h3>
           <div style={styles.suggestionList}>
-            {data.suggestions.map((tip, i) => (
+            {analysis.suggestions.map((tip, i) => (
               <motion.div
                 key={i}
                 initial={{ opacity: 0, x: -12 }}
@@ -292,6 +357,67 @@ export default function DashboardPage() {
             ))}
           </div>
         </motion.div>
+
+        {/* Suggested Career Roles */}
+        {Array.isArray(analysis.suggestedRoles) && analysis.suggestedRoles.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.58, duration: 0.5 }}
+            style={styles.card}
+          >
+            <h3 style={styles.cardTitle}>
+              <Briefcase size={16} style={{ marginRight: 6, verticalAlign: -2, color: "#5EEAD4" }} />
+              Suggested Career Roles
+            </h3>
+            <div style={styles.rolesGrid}>
+              {analysis.suggestedRoles.map((item, i) => (
+                <motion.div
+                  key={`${item?.role ?? "role"}-${i}`}
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.66 + i * 0.08, duration: 0.35 }}
+                  style={styles.roleCard}
+                >
+                  <div style={styles.roleTitle}>{item?.role}</div>
+                  <div style={styles.roleReason}>{item?.matchReason}</div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+
+        {/* Learning Recommendations */}
+        {Array.isArray(analysis.learningRecommendations) && analysis.learningRecommendations.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.66, duration: 0.5 }}
+            style={styles.card}
+          >
+            <h3 style={styles.cardTitle}>
+              <GraduationCap size={16} style={{ marginRight: 6, verticalAlign: -2, color: "#F5C451" }} />
+              Learning Recommendations
+            </h3>
+            <div style={styles.suggestionList}>
+              {analysis.learningRecommendations.map((item, i) => (
+                <motion.div
+                  key={`${item?.skill ?? "skill"}-${i}`}
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.74 + i * 0.08, duration: 0.4 }}
+                  style={styles.suggestionRow}
+                >
+                  <span style={{ ...styles.suggestionNum, background: "#5EEAD418", color: "#5EEAD4" }}>{i + 1}</span>
+                  <div style={styles.learningContent}>
+                    <span style={styles.skillTag}>{item?.skill}</span>
+                    <span style={styles.suggestionText}>{item?.suggestion}</span>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
@@ -307,7 +433,7 @@ const styles = {
     fontFamily: "'Inter', 'Segoe UI', sans-serif",
     position: "relative",
     overflow: "hidden",
-    padding: "32px 24px 60px",
+    padding: "32px 24px 60px 240px",
   },
   grid: {
     position: "absolute",
@@ -358,6 +484,51 @@ const styles = {
     color: "#7C8A96",
     fontSize: 14,
     marginTop: 4,
+  },
+  emptyCard: {
+    position: "relative",
+    width: "100%",
+    maxWidth: 460,
+    margin: "12vh auto 0",
+    borderRadius: 20,
+    padding: "40px 36px",
+    textAlign: "center",
+    background: "linear-gradient(160deg, #12181F 0%, #0E1319 100%)",
+    border: "1px solid #22303A",
+    boxShadow: "0 30px 80px -20px #000000aa, 0 0 0 1px #ffffff05",
+  },
+  emptyIconBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    background: "linear-gradient(135deg, #5EEAD4, #2DD4BF)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    boxShadow: "0 8px 24px -6px #5EEAD466",
+    margin: "0 auto 22px",
+  },
+  emptyText: {
+    color: "#7C8A96",
+    fontSize: 14,
+    lineHeight: 1.6,
+    marginTop: 10,
+  },
+  emptyBtn: {
+    width: "100%",
+    marginTop: 22,
+    padding: "13px 0",
+    borderRadius: 12,
+    border: "none",
+    background: "linear-gradient(135deg, #5EEAD4, #2DD4BF)",
+    color: "#0B0F14",
+    fontWeight: 600,
+    fontSize: 15,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
   },
   topRow: {
     display: "flex",
@@ -476,6 +647,45 @@ const styles = {
     color: "#9CA3AF",
     fontSize: 13,
     lineHeight: 1.5,
+  },
+  rolesGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: 12,
+  },
+  roleCard: {
+    padding: "14px 16px",
+    borderRadius: 12,
+    background: "#0B0F14",
+    border: "1px solid #1A222B",
+  },
+  roleTitle: {
+    color: "#E7ECEF",
+    fontSize: 14,
+    fontWeight: 600,
+    marginBottom: 6,
+  },
+  roleReason: {
+    color: "#7C8A96",
+    fontSize: 12,
+    lineHeight: 1.5,
+  },
+  learningContent: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    minWidth: 0,
+  },
+  skillTag: {
+    display: "inline-flex",
+    alignSelf: "flex-start",
+    padding: "3px 8px",
+    borderRadius: 7,
+    fontSize: 11,
+    fontWeight: 600,
+    color: "#5EEAD4",
+    background: "#5EEAD412",
+    border: "1px solid #5EEAD422",
   },
 };
 
