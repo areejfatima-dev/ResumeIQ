@@ -7,6 +7,9 @@ const mongoose = require('mongoose');
 require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
+const analysesRoutes = require('./routes/analyses');
+const auth = require('./middleware/auth');
+const Analysis = require('./models/Analysis');
 
 const app = express();
 app.use(cors());
@@ -16,6 +19,7 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 // --- Routes ---
 app.use('/api/auth', authRoutes);
+app.use('/api/analyses', analysesRoutes);
 
 // --- Multer setup: memory storage, PDF only, max 5MB ---
 const upload = multer({
@@ -36,7 +40,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // --- Upload & extract text from a resume PDF ---
-app.post('/api/upload', upload.single('resume'), async (req, res) => {
+app.post('/api/upload', auth, upload.single('resume'), async (req, res) => {
   try {
     // No file provided
     if (!req.file) {
@@ -60,9 +64,9 @@ app.post('/api/upload', upload.single('resume'), async (req, res) => {
 });
 
 // --- AI analysis: resume vs job description via Groq ---
-app.post('/api/analyze', async (req, res) => {
+app.post('/api/analyze', auth, async (req, res) => {
   try {
-    const { resumeText, jobDescription } = req.body;
+    const { resumeText, jobDescription, fileName } = req.body;
 
     if (!resumeText || !jobDescription) {
       return res.status(400).json({
@@ -158,7 +162,27 @@ ${jobDescription.slice(0, 4000)}
       return res.status(500).json({ success: false, message: 'AI response missing required analysis fields' });
     }
 
-    return res.json({ success: true, analysis });
+    // --- Persist the analysis for the current user (DB failure must not discard the result) ---
+    let analysisId = null;
+    try {
+      const savedAnalysis = await Analysis.create({
+        user: req.user.id,
+        fileName: fileName ? String(fileName).slice(0, 255) : undefined,
+        jobDescription: jobDescription.slice(0, 4000),
+        overallScore: analysis.overallScore,
+        matchedKeywords: analysis.matchedKeywords,
+        missingKeywords: analysis.missingKeywords,
+        categoryScores: analysis.categoryScores,
+        suggestions: analysis.suggestions,
+        suggestedRoles: analysis.suggestedRoles,
+        learningRecommendations: analysis.learningRecommendations,
+      });
+      analysisId = savedAnalysis._id;
+    } catch (saveErr) {
+      console.error('Failed to save analysis:', saveErr.message || saveErr);
+    }
+
+    return res.json({ success: true, analysis, analysisId });
   } catch (err) {
     console.error('Analyze error:', err.message || err);
     return res.status(500).json({ success: false, message: 'Analysis failed: ' + (err.message || 'Unknown error') });

@@ -88,6 +88,7 @@ export default function UploadPage() {
       const { data: analyzeData } = await api.post("/api/analyze", {
         resumeText,
         jobDescription: jobDescription.trim(),
+        fileName: file.name,
       });
 
       if (!analyzeData.success) {
