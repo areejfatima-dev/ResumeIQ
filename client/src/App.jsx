@@ -1,8 +1,10 @@
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import UploadPage from "./pages/UploadPage";
 import SignupPage from "./pages/SignupPage";
 import DashboardPage from "./pages/DashboardPage";
+import HistoryPage from "./pages/HistoryPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useAuth } from "./context/AuthContext";
 
@@ -19,7 +21,7 @@ function AppShell() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const showBar = Boolean(user) && pathname !== "/" && pathname !== "/signup";
+  const showBar = Boolean(user) && !["/", "/login", "/signup"].includes(pathname);
 
   function handleLogout() {
     logout();
@@ -33,6 +35,7 @@ function AppShell() {
           <div style={styles.brand}>ResumeIQ</div>
           <nav style={styles.navLinks}>
             <NavLink to="/upload" label="Analyze" active={pathname === "/upload"} />
+            <NavLink to="/history" label="History" active={pathname === "/history"} />
             <NavLink to="/dashboard" label="Dashboard" active={pathname === "/dashboard"} />
           </nav>
           <div style={styles.rightSide}>
@@ -45,13 +48,22 @@ function AppShell() {
       )}
 
       <Routes>
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
         <Route
           path="/upload"
           element={
             <ProtectedRoute>
               <UploadPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <HistoryPage />
             </ProtectedRoute>
           }
         />

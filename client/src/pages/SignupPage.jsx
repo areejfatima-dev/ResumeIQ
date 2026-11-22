@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Mail, Lock, ArrowRight, UserPlus, User, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import PasswordToggle from "../components/PasswordToggle";
 
 export default function SignupPage() {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [apiError, setApiError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -126,7 +129,7 @@ export default function SignupPage() {
             Welcome aboard. Let's analyze some resumes.
           </motion.p>
 
-          <Link to="/" style={{ textDecoration: "none" }}>
+          <Link to="/login" style={{ textDecoration: "none" }}>
             <motion.button
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -239,11 +242,15 @@ export default function SignupPage() {
             <FieldRow delay={0.52} error={errors.password}>
               <Lock size={17} color="#7C8A96" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); clearError("password"); }}
                 style={inputStyle}
+              />
+              <PasswordToggle
+                visible={showPassword}
+                onToggle={() => setShowPassword((prev) => !prev)}
               />
             </FieldRow>
             {errors.password && <p style={fieldErrorStyle}>{errors.password}</p>}
@@ -263,11 +270,15 @@ export default function SignupPage() {
             <FieldRow delay={0.58} error={errors.confirmPassword}>
               <Lock size={17} color="#7C8A96" />
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Confirm password"
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); clearError("confirmPassword"); }}
                 style={inputStyle}
+              />
+              <PasswordToggle
+                visible={showConfirmPassword}
+                onToggle={() => setShowConfirmPassword((prev) => !prev)}
               />
             </FieldRow>
             {errors.confirmPassword && <p style={fieldErrorStyle}>{errors.confirmPassword}</p>}
@@ -321,7 +332,7 @@ export default function SignupPage() {
             style={{ textAlign: "center", color: "#556270", fontSize: 13, marginTop: 22 }}
           >
             Already have an account?{" "}
-            <Link to="/" style={{ color: "#5EEAD4", fontWeight: 500, textDecoration: "none" }}>
+            <Link to="/login" style={{ color: "#5EEAD4", fontWeight: 500, textDecoration: "none" }}>
               Sign in
             </Link>
           </motion.p>

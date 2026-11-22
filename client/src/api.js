@@ -44,8 +44,8 @@ api.interceptors.response.use(
   (error) => {
     if (error?.response?.status === 401) {
       clearStoredToken();
-      if (window.location.pathname !== "/") {
-        window.location.href = "/";
+      if (!["/", "/login", "/signup"].includes(window.location.pathname)) {
+        window.location.href = "/login";
       }
     }
     return Promise.reject(error);

@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate } from "react-router-dom";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Mail, Lock, ArrowRight, FileCheck2, AlertCircle } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import PasswordToggle from "../components/PasswordToggle";
 
 // ---- Design tokens ----
 // bg: #0B0F14 (near-black ink)   card: #12181F
@@ -14,6 +15,7 @@ export default function LoginPage() {
   const { login, user, loading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -178,12 +180,16 @@ export default function LoginPage() {
             <FieldRow delay={0.48}>
               <Lock size={17} color="#7C8A96" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 style={inputStyle}
                 required
+              />
+              <PasswordToggle
+                visible={showPassword}
+                onToggle={() => setShowPassword((prev) => !prev)}
               />
             </FieldRow>
 
